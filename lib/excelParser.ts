@@ -1,5 +1,36 @@
 import * as XLSX from "xlsx";
 
+/**
+ * Extracts the canonical base course code from a raw string.
+ *
+ * Handles:
+ *  - Plain codes:       "EHR102-UG"     → "EHR102"
+ *  - Hyphenated codes:  "LAG-BUA122-PG" → "LAG-BUA122"
+ *  - Spaced variants:   " ACC 102 "     → "ACC102"
+ *  - Filename noise:    "EHR102-UG.xlsx"→ "EHR102"  (strip .xlsx before calling)
+ *
+ * Strategy:
+ *  1. Strip all whitespace and uppercase.
+ *  2. Try hyphenated prefix pattern first: e.g. LAG-TAX124, ACC-CM202
+ *  3. Fall back to plain 3-4 letter + 3 digit pattern: e.g. EHR102
+ *  4. If nothing matches, return the cleaned string as-is (max 15 chars).
+ */
+function extractBaseCourseCode(raw: string): string {
+  // Step 1 — strip spaces, uppercase
+  const clean = raw.replace(/\s+/g, "").toUpperCase();
+
+  // Step 2 — try hyphenated pattern first (e.g. LAG-BUA122, ACC-CM202, FIN-CM216)
+  const hyphenMatch = clean.match(/^([A-Z]{2,4}-[A-Z]{2,4}\d{3})/);
+  if (hyphenMatch) return hyphenMatch[1];
+
+  // Step 3 — plain base code: 3–4 uppercase letters followed by exactly 3 digits
+  const plainMatch = clean.match(/[A-Z]{3,4}\d{3}/);
+  if (plainMatch) return plainMatch[0];
+
+  // Step 4 — no recognisable pattern; return cleaned string (trimmed to 15 chars)
+  return clean.slice(0, 15);
+}
+
 export interface ParsedStudent {
   name: string;
   matricNo: string;
@@ -11,6 +42,7 @@ export interface ParsedCourse {
   fileName: string;
   rawStudentCount: number;
 }
+
 
 /**
  * Deeply scans the first 15 rows of a sheet to extract the course code,
@@ -40,8 +72,7 @@ function parseSheet(
         const nextRowVal = raw[r + 1]?.[c];
         const candidate = nextColVal ?? nextRowVal;
         if (candidate != null && String(candidate).trim() !== "") {
-          // Sanitize: strip whitespace, uppercase
-          courseCode = String(candidate).replace(/\s+/g, "").toUpperCase();
+          courseCode = extractBaseCourseCode(String(candidate));
           break;
         }
       }
@@ -50,12 +81,8 @@ function parseSheet(
   }
 
   if (!courseCode) {
-    // Fallback: use filename without extension
-    courseCode = fileName
-      .replace(/\.xlsx$/i, "")
-      .replace(/\s+/g, "")
-      .toUpperCase()
-      .slice(0, 10);
+    // Fallback: derive from filename, stripping extension and suffixes
+    courseCode = extractBaseCourseCode(fileName.replace(/\.xlsx$/i, ""));
   }
 
   // Step 2: Find the data header row with both "Matric No." and "Student Name"
