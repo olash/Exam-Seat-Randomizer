@@ -11,12 +11,12 @@ export interface SeatingAllocation {
   courseCode: string;
   venueName: string;
   seatNumber: number;
-  isOverflow: boolean; // seatNumber > VENUE_CAPACITIES[venueName]
+  isOverflow: boolean; // true when seatNumber > VENUE_CAPACITIES[venueName]
 }
 
-/**
- * Fisher-Yates in-place shuffle
- */
+// ---------------------------------------------------------------------------
+// Fisher-Yates in-place shuffle
+// ---------------------------------------------------------------------------
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -26,85 +26,65 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-interface VenueBucket {
-  venueName: string;
-  capacity: number;
-  // Map: courseCode → queue of students still to seat here
-  queues: Map<string, { name: string; matricNo: string }[]>;
-  seatCounter: number;
-}
-
+// ---------------------------------------------------------------------------
+// Main allocation engine
+// ---------------------------------------------------------------------------
 /**
- * Build venue buckets for all courses based on their venue maps.
- * Each bucket tracks per-course student queues and a running seat counter.
- */
-function buildVenueBuckets(
-  shuffledCourses: Map<
-    string,
-    { name: string; matricNo: string; venueList: string[] }[]
-  >,
-  venueOverrides: Record<string, string[]>
-): Map<string, VenueBucket> {
-  const buckets = new Map<string, VenueBucket>();
-
-  // Initialize buckets for every venue
-  for (const [venue, cap] of Object.entries(VENUE_CAPACITIES)) {
-    buckets.set(venue, {
-      venueName: venue,
-      capacity: cap,
-      queues: new Map(),
-      seatCounter: 0,
-    });
-  }
-
-  return buckets;
-}
-
-/**
- * Main seating allocation engine.
+ * Generates interleaved seating allocations for all supplied courses.
  *
- * For each course:
- *   1. Shuffle students (Fisher-Yates)
- *   2. Distribute students across their venue list, filling each room sequentially
- *   3. After initial distribution, do interleaved round-robin fill within each venue
- *
- * The interleaving step ensures students of the same course don't sit consecutively.
- * Overflow: if all venues full, continue incrementing seat_number in last venue.
+ * Algorithm:
+ *  1. Shuffle each course's student list independently (Fisher-Yates).
+ *  2. Look up the ORDERED venue list for the course from COURSE_VENUE_MAP.
+ *     venueOverrides take precedence (set via the UI for unmapped courses).
+ *     If a course is genuinely absent from both, fall back to DEFAULT_VENUE_ORDER
+ *     and log a warning.
+ *  3. Fill each venue sequentially, respecting its remaining capacity.
+ *     The LAST venue in the list absorbs any remaining students (overflow).
+ *  4. Within each venue, perform a round-robin interleave across all
+ *     course queues assigned to that venue — preventing same-course adjacency.
  */
 export function generateSeating(
   parsedCourses: ParsedCourse[],
   venueOverrides: Record<string, string[]> = {}
 ): SeatingAllocation[] {
-  // Step 1: Shuffle each course independently
-  const shuffledMap = new Map<
-    string,
-    { name: string; matricNo: string }[]
-  >();
 
+  // Step 1 — shuffle each course independently
+  const shuffled = new Map<string, { name: string; matricNo: string }[]>();
   for (const course of parsedCourses) {
-    shuffledMap.set(course.courseCode, shuffle(course.students));
+    shuffled.set(course.courseCode, shuffle(course.students));
   }
 
-  // Step 2: Assign students to venue buckets per course
-  // venue → { courseCode → student[] }
-  const venuePools: Map<
+  // Step 2 — distribute students into per-venue course queues
+  // Structure: venueName → Map<courseCode, student[]>
+  const venuePools = new Map<
     string,
     Map<string, { name: string; matricNo: string }[]>
-  > = new Map();
+  >();
 
-  for (const [venue] of Object.entries(VENUE_CAPACITIES)) {
+  // Pre-initialise a pool entry for every known venue
+  for (const venue of Object.keys(VENUE_CAPACITIES)) {
     venuePools.set(venue, new Map());
   }
 
   for (const course of parsedCourses) {
-    const courseCode = course.courseCode;
-    const students = [...(shuffledMap.get(courseCode) ?? [])];
-    const venues =
-      venueOverrides[courseCode] ??
-      COURSE_VENUE_MAP[courseCode] ??
-      DEFAULT_VENUE_ORDER;
+    const code = course.courseCode;
+    const students = [...(shuffled.get(code) ?? [])];
 
-    let remaining = students;
+    // Strict venue lookup — overrides first, then COURSE_VENUE_MAP, then warn+fallback
+    let venues: string[];
+    if (venueOverrides[code] && venueOverrides[code].length > 0) {
+      venues = venueOverrides[code];
+    } else if (COURSE_VENUE_MAP[code]) {
+      venues = COURSE_VENUE_MAP[code]; // <-- strict: only the defined rooms
+    } else {
+      console.warn(
+        `[Randomization] Course "${code}" not found in COURSE_VENUE_MAP. ` +
+        `Using DEFAULT_VENUE_ORDER as fallback. Add it to timetableMap.ts to fix this.`
+      );
+      venues = DEFAULT_VENUE_ORDER;
+    }
+
+    let remaining = [...students];
 
     for (let vi = 0; vi < venues.length; vi++) {
       if (remaining.length === 0) break;
@@ -112,49 +92,46 @@ export function generateSeating(
       const venueName = venues[vi];
       const cap = VENUE_CAPACITIES[venueName] ?? 90;
 
-      // Calculate how many seats are still available in this venue for all courses
-      const pool = venuePools.get(venueName);
-      if (!pool) continue;
-
-      // Total already allocated to this venue
-      let alreadyAllocated = 0;
-      for (const [, queue] of pool) {
-        alreadyAllocated += queue.length;
-      }
-      const available = cap - alreadyAllocated;
-
-      if (available <= 0) {
-        // Venue full, try next
-        continue;
+      // Ensure a pool entry exists (handles Tayo aderinoku Hall etc.)
+      if (!venuePools.has(venueName)) {
+        venuePools.set(venueName, new Map());
       }
 
-      // Is this the last venue for this course?
+      const pool = venuePools.get(venueName)!;
+
+      // Count how many seats are already claimed in this venue across all courses
+      let alreadyClaimed = 0;
+      for (const q of pool.values()) alreadyClaimed += q.length;
+      const available = cap - alreadyClaimed;
+
       const isLastVenue = vi === venues.length - 1;
 
       if (isLastVenue) {
-        // Dump all remaining (overflow allowed)
-        if (!pool.has(courseCode)) pool.set(courseCode, []);
-        pool.get(courseCode)!.push(...remaining);
+        // Last room: absorb all remaining students (overflow is allowed)
+        if (!pool.has(code)) pool.set(code, []);
+        pool.get(code)!.push(...remaining);
         remaining = [];
-      } else {
+      } else if (available > 0) {
+        // Take as many as will fit
         const toPlace = remaining.splice(0, available);
-        if (!pool.has(courseCode)) pool.set(courseCode, []);
-        pool.get(courseCode)!.push(...toPlace);
+        if (!pool.has(code)) pool.set(code, []);
+        pool.get(code)!.push(...toPlace);
       }
+      // If available === 0 and not last venue, skip to next venue
     }
 
-    // If still remaining after all venues (shouldn't happen with overflow, but safety)
+    // Safety: if students are still unplaced after the loop (shouldn't happen
+    // with last-venue overflow, but guards against an empty venues array)
     if (remaining.length > 0) {
       const lastVenue = venues[venues.length - 1] ?? DEFAULT_VENUE_ORDER[0];
-      const pool = venuePools.get(lastVenue);
-      if (pool) {
-        if (!pool.has(courseCode)) pool.set(courseCode, []);
-        pool.get(courseCode)!.push(...remaining);
-      }
+      if (!venuePools.has(lastVenue)) venuePools.set(lastVenue, new Map());
+      const pool = venuePools.get(lastVenue)!;
+      if (!pool.has(code)) pool.set(code, []);
+      pool.get(code)!.push(...remaining);
     }
   }
 
-  // Step 3: Interleaved round-robin fill within each venue
+  // Step 3 — interleaved round-robin fill within each venue
   const allocations: SeatingAllocation[] = [];
 
   for (const [venueName, courseQueues] of venuePools) {
@@ -162,11 +139,10 @@ export function generateSeating(
 
     const cap = VENUE_CAPACITIES[venueName] ?? 90;
 
-    // Build rotating queues
-    const courseCodes = Array.from(courseQueues.keys());
-    const queues = courseCodes.map((cc) => ({
+    // Build mutable queues for round-robin
+    const queues = Array.from(courseQueues.entries()).map(([cc, students]) => ({
       courseCode: cc,
-      students: [...(courseQueues.get(cc) ?? [])],
+      students: [...students],
     }));
 
     let seatNumber = 0;
@@ -179,14 +155,13 @@ export function generateSeating(
         anyProgress = true;
         seatNumber++;
         const student = queue.students.shift()!;
-        const isOverflow = seatNumber > cap;
         allocations.push({
           studentName: student.name,
           matricNo: student.matricNo,
           courseCode: queue.courseCode,
           venueName,
           seatNumber,
-          isOverflow,
+          isOverflow: seatNumber > cap,
         });
       }
     }
