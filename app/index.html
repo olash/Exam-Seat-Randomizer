@@ -1,0 +1,340 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seatline — Examination Seating</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 font-sans text-slate-950 antialiased">
+  <!-- Examination seating administration portal -->
+  <main class="min-h-screen">
+    <header class="border-b border-slate-200 bg-white">
+      <div class="mx-auto flex max-w-screen-2xl items-center justify-between gap-6 px-5 py-4 sm:px-8 lg:px-10">
+        <div class="flex min-w-0 items-center gap-4">
+          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-sm font-semibold tracking-tighter text-white">
+            SL
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h1 class="truncate text-lg font-semibold tracking-tight text-slate-950">Examination Seating</h1>
+              <span class="hidden rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-500 sm:inline">2024 / 25 · Semester II</span>
+            </div>
+            <p class="mt-0.5 text-xs text-slate-500">Randomised allocation workspace</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button type="button" class="hidden items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:flex">
+            <iconify-icon icon="solar:clock-circle-linear" width="18" stroke-width="1.5"></iconify-icon>
+            Activity
+          </button>
+          <div class="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <div class="hidden text-right sm:block">
+              <p class="text-sm font-medium text-slate-800">Registry Office</p>
+              <p class="text-xs text-slate-500">Administrator</p>
+            </div>
+            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700">RO</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-screen-2xl px-5 py-7 sm:px-8 lg:px-10">
+      <div class="mb-7 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+        <div>
+          <nav aria-label="Breadcrumb" class="mb-3 flex items-center gap-2 text-xs text-slate-500">
+            <span>Assessments</span>
+            <iconify-icon icon="solar:alt-arrow-right-linear" width="14" stroke-width="1.5"></iconify-icon>
+            <span class="font-medium text-slate-700">Seating plans</span>
+          </nav>
+          <h2 class="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">Generate seating allocation</h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Import examination registrations, review venue capacity, and create a balanced randomized seating plan.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p class="text-xs text-slate-500">Available capacity</p>
+            <p class="mt-0.5 text-sm font-semibold text-slate-900">1,106 <span class="font-normal text-slate-500">seats</span></p>
+          </div>
+          <div class="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p class="text-xs text-slate-500">Imported students</p>
+            <p class="mt-0.5 text-sm font-semibold text-slate-900">842 <span class="font-normal text-slate-500">records</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <section class="min-w-0 space-y-6">
+          <section aria-labelledby="upload-title" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 id="upload-title" class="text-sm font-semibold text-slate-900">File ingestion</h3>
+                <p class="mt-1 text-xs text-slate-500">Upload a source spreadsheet containing student registration records.</p>
+              </div>
+              <span class="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                Parse complete
+              </span>
+            </div>
+
+            <div class="p-5">
+              <input id="file-upload" type="file" accept=".xlsx" class="hidden">
+              <label for="file-upload" class="group flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                <div class="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm">
+                  <iconify-icon icon="solar:document-add-linear" width="22" stroke-width="1.5"></iconify-icon>
+                </div>
+                <p class="mt-4 text-sm font-medium text-slate-800">Drop your registration file here</p>
+                <p class="mt-1 text-xs text-slate-500">or click to browse · .xlsx files only · Maximum 25 MB</p>
+              </label>
+
+              <div class="mt-4 flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-center gap-3">
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-emerald-700">
+                    <iconify-icon icon="solar:file-check-linear" width="19" stroke-width="1.5"></iconify-icon>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium text-slate-800">semester_2_registrations.xlsx</p>
+                    <p class="mt-0.5 text-xs text-slate-500">842 records parsed · 12 courses detected · 184 KB</p>
+                  </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-3">
+                  <span class="text-xs font-medium text-emerald-700">Ready</span>
+                  <button type="button" aria-label="Remove uploaded file" class="rounded-md p-1 text-slate-400 transition hover:bg-white hover:text-slate-700">
+                    <iconify-icon icon="solar:trash-bin-trash-linear" width="18" stroke-width="1.5"></iconify-icon>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="control-title" class="rounded-xl border border-slate-200 bg-white">
+            <div class="flex flex-col gap-5 p-5 lg:flex-row lg:items-end lg:justify-between">
+              <div class="min-w-0 flex-1">
+                <div class="mb-3">
+                  <h3 id="control-title" class="text-sm font-semibold text-slate-900">Allocation controls</h3>
+                  <p class="mt-1 text-xs text-slate-500">Select which imported courses to include in this generation run.</p>
+                </div>
+
+                <div class="relative max-w-xl">
+                  <button id="course-dropdown-button" type="button" aria-expanded="false" class="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-left text-sm text-slate-700 transition hover:border-slate-400">
+                    <span class="flex min-w-0 items-center gap-2">
+                      <span class="flex h-5 w-5 items-center justify-center rounded border border-slate-300 bg-slate-950 text-white">
+                        <iconify-icon icon="solar:check-read-linear" width="13" stroke-width="1.5"></iconify-icon>
+                      </span>
+                      <span><span class="font-medium">12 courses selected</span><span class="text-slate-500"> · All imported courses</span></span>
+                    </span>
+                    <iconify-icon icon="solar:alt-arrow-down-linear" width="16" stroke-width="1.5"></iconify-icon>
+                  </button>
+
+                  <div id="course-dropdown" class="absolute left-0 top-full z-20 mt-2 hidden w-full rounded-lg border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
+                    <div class="border-b border-slate-100 px-2 pb-2">
+                      <p class="text-xs font-medium text-slate-500">Included courses</p>
+                    </div>
+                    <div class="mt-1 max-h-48 overflow-auto">
+                      <label class="flex cursor-pointer items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-slate-50"><span class="flex items-center gap-2"><span class="flex h-4 w-4 items-center justify-center rounded border border-slate-950 bg-slate-950 text-white"><iconify-icon icon="solar:check-read-linear" width="11" stroke-width="1.5"></iconify-icon></span>CSC 301 · Algorithms</span><span class="text-xs text-slate-400">86</span></label>
+                      <label class="flex cursor-pointer items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-slate-50"><span class="flex items-center gap-2"><span class="flex h-4 w-4 items-center justify-center rounded border border-slate-950 bg-slate-950 text-white"><iconify-icon icon="solar:check-read-linear" width="11" stroke-width="1.5"></iconify-icon></span>MAT 241 · Linear Algebra</span><span class="text-xs text-slate-400">104</span></label>
+                      <label class="flex cursor-pointer items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-slate-50"><span class="flex items-center gap-2"><span class="flex h-4 w-4 items-center justify-center rounded border border-slate-950 bg-slate-950 text-white"><iconify-icon icon="solar:check-read-linear" width="11" stroke-width="1.5"></iconify-icon></span>ECO 203 · Microeconomics</span><span class="text-xs text-slate-400">97</span></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button id="generate-button" type="button" class="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                <iconify-icon icon="solar:shuffle-linear" width="18" stroke-width="1.5"></iconify-icon>
+                Generate Seating Plan
+              </button>
+            </div>
+          </section>
+
+          <section aria-labelledby="table-title" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 id="table-title" class="text-sm font-semibold text-slate-900">Generated seating list</h3>
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">842 students</span>
+                </div>
+                <p id="generation-status" class="mt-1 text-xs text-slate-500">Plan generated 14 Aug 2026 at 09:42 · Version 01</p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button type="button" aria-label="Export list as PDF" title="Export PDF" class="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                  <iconify-icon icon="solar:document-text-linear" width="17" stroke-width="1.5"></iconify-icon>
+                  <span class="hidden sm:inline">PDF</span>
+                </button>
+                <button type="button" aria-label="Export list as CSV" title="Export CSV" class="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                  <iconify-icon icon="solar:document-text-linear" width="17" stroke-width="1.5"></iconify-icon>
+                  <span class="hidden sm:inline">CSV</span>
+                </button>
+                <button type="button" aria-label="More export options" class="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 transition hover:bg-slate-50">
+                  <iconify-icon icon="solar:menu-dots-linear" width="18" stroke-width="1.5"></iconify-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[46rem] text-left">
+                <thead class="border-b border-slate-200 bg-slate-50/70">
+                  <tr>
+                    <th class="w-10 px-5 py-3">
+                      <span class="flex h-4 w-4 rounded border border-slate-300 bg-white"></span>
+                    </th>
+                    <th class="px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <button class="inline-flex items-center gap-1 hover:text-slate-900">Student Name <iconify-icon icon="solar:sort-linear" width="14" stroke-width="1.5"></iconify-icon></button>
+                    </th>
+                    <th class="px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <button class="inline-flex items-center gap-1 hover:text-slate-900">Matric No <iconify-icon icon="solar:sort-linear" width="14" stroke-width="1.5"></iconify-icon></button>
+                    </th>
+                    <th class="px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <button class="inline-flex items-center gap-1 hover:text-slate-900">Course <iconify-icon icon="solar:sort-linear" width="14" stroke-width="1.5"></iconify-icon></button>
+                    </th>
+                    <th class="px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <button class="inline-flex items-center gap-1 hover:text-slate-900">Venue <iconify-icon icon="solar:sort-linear" width="14" stroke-width="1.5"></iconify-icon></button>
+                    </th>
+                    <th class="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">
+                      <button class="inline-flex items-center gap-1 hover:text-slate-900">Seat Number <iconify-icon icon="solar:sort-linear" width="14" stroke-width="1.5"></iconify-icon></button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="seating-table-body" class="divide-y divide-slate-100">
+                  <tr class="transition hover:bg-slate-50/80">
+                    <td class="px-5 py-3.5"><span class="flex h-4 w-4 rounded border border-slate-300 bg-white"></span></td>
+                    <td class="px-3 py-3.5 text-sm font-medium text-slate-800">Adebayo, Temitope A.</td>
+                    <td class="px-3 py-3.5 font-mono text-xs text-slate-600">U2021/CSC/0842</td>
+                    <td class="px-3 py-3.5"><span class="text-sm text-slate-700">CSC 301</span><span class="ml-2 text-xs text-slate-400">Algorithms</span></td>
+                    <td class="px-3 py-3.5 text-sm text-slate-700">Room 1 &amp; 2</td>
+                    <td class="px-5 py-3.5 text-right font-mono text-sm font-medium text-slate-800">R1-024</td>
+                  </tr>
+                  <tr class="transition hover:bg-slate-50/80">
+                    <td class="px-5 py-3.5"><span class="flex h-4 w-4 rounded border border-slate-300 bg-white"></span></td>
+                    <td class="px-3 py-3.5 text-sm font-medium text-slate-800">Chukwu, Ifeoma N.</td>
+                    <td class="px-3 py-3.5 font-mono text-xs text-slate-600">U2021/ECO/0351</td>
+                    <td class="px-3 py-3.5"><span class="text-sm text-slate-700">ECO 203</span><span class="ml-2 text-xs text-slate-400">Microeconomics</span></td>
+                    <td class="px-3 py-3.5 text-sm text-slate-700">Room 3</td>
+                    <td class="px-5 py-3.5 text-right font-mono text-sm font-medium text-slate-800">R3-041</td>
+                  </tr>
+                  <tr class="transition hover:bg-slate-50/80">
+                    <td class="px-5 py-3.5"><span class="flex h-4 w-4 rounded border border-slate-300 bg-white"></span></td>
+                    <td class="px-3 py-3.5 text-sm font-medium text-slate-800">Danladi, Samuel K.</td>
+                    <td class="px-3 py-3.5 font-mono text-xs text-slate-600">U2022/MAT/1174</td>
+                    <td class="px-3 py-3.5"><span class="text-sm text-slate-700">MAT 241</span><span class="ml-2 text-xs text-slate-400">Linear Algebra</span></td>
+                    <td class="px-3 py-3.5 text-sm text-slate-700">Room 8</td>
+                    <td class="px-5 py-3.5 text-right font-mono text-sm font-medium text-slate-800">R8-076</td>
+                  </tr>
+                  <tr class="transition hover:bg-slate-50/80">
+                    <td class="px-5 py-3.5"><span class="flex h-4 w-4 rounded border border-slate-300 bg-white"></span></td>
+                    <td class="px-3 py-3.5 text-sm font-medium text-slate-800">Eze, Nnamdi C.</td>
+                    <td class="px-3 py-3.5 font-mono text-xs text-slate-600">U2021/CSC/0918</td>
+                    <td class="px-3 py-3.5"><span class="text-sm text-slate-700">CSC 301</span><span class="ml-2 text-xs text-slate-400">Algorithms</span></td>
+                    <td class="px-3 py-3.5 text-sm text-slate-700">Room 11</td>
+                    <td class="px-5 py-3.5 text-right font-mono text-sm font-medium text-slate-800">R11-013</td>
+                  </tr>
+                  <tr class="transition hover:bg-slate-50/80">
+                    <td class="px-5 py-3.5"><span class="flex h-4 w-4 rounded border border-slate-300 bg-white"></span></td>
+                    <td class="px-3 py-3.5 text-sm font-medium text-slate-800">Ibrahim, Zainab M.</td>
+                    <td class="px-3 py-3.5 font-mono text-xs text-slate-600">U2022/BUS/0639</td>
+                    <td class="px-3 py-3.5"><span class="text-sm text-slate-700">BUS 204</span><span class="ml-2 text-xs text-slate-400">Business Law</span></td>
+                    <td class="px-3 py-3.5 text-sm text-slate-700">Room 14</td>
+                    <td class="px-5 py-3.5 text-right font-mono text-sm font-medium text-slate-800">R14-058</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex flex-col gap-3 border-t border-slate-200 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <p class="text-xs text-slate-500">Showing <span class="font-medium text-slate-700">1–5</span> of <span class="font-medium text-slate-700">842</span> allocations</p>
+              <div class="flex items-center gap-1">
+                <button type="button" disabled="" class="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-300"><iconify-icon icon="solar:alt-arrow-left-linear" width="15" stroke-width="1.5"></iconify-icon></button>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-xs font-medium text-white">1</button>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100">2</button>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100">3</button>
+                <span class="px-1 text-xs text-slate-400">…</span>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium text-slate-600 hover:bg-slate-100">169</button>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50"><iconify-icon icon="solar:alt-arrow-right-linear" width="15" stroke-width="1.5"></iconify-icon></button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <aside class="space-y-6">
+          <section aria-labelledby="venue-title" class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="border-b border-slate-100 px-5 py-4">
+              <div class="flex items-center justify-between">
+                <h3 id="venue-title" class="text-sm font-semibold text-slate-900">Venue constraints</h3>
+                <iconify-icon icon="solar:buildings-2-linear" class="text-slate-400" width="19" stroke-width="1.5"></iconify-icon>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">Predefined rooms and usable capacity.</p>
+            </div>
+
+            <div class="divide-y divide-slate-100">
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 1 &amp; 2</span><span class="font-mono text-sm font-medium text-slate-900">128</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 3</span><span class="font-mono text-sm font-medium text-slate-900">68</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 4 &amp; 5</span><span class="font-mono text-sm font-medium text-slate-900">128</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 7</span><span class="font-mono text-sm font-medium text-slate-900">69</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 8</span><span class="font-mono text-sm font-medium text-slate-900">108</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 9</span><span class="font-mono text-sm font-medium text-slate-900">115</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 11</span><span class="font-mono text-sm font-medium text-slate-900">90</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 12</span><span class="font-mono text-sm font-medium text-slate-900">90</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 13</span><span class="font-mono text-sm font-medium text-slate-900">90</span></div>
+              <div class="flex items-center justify-between px-5 py-3"><span class="text-sm text-slate-700">Room 14</span><span class="font-mono text-sm font-medium text-slate-900">90</span></div>
+            </div>
+
+            <div class="border-t border-slate-200 bg-slate-50 px-5 py-3.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium uppercase tracking-wider text-slate-500">Total capacity</span>
+                <span class="font-mono text-sm font-semibold text-slate-900">1,106</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-xl border border-slate-200 bg-white p-5">
+            <div class="flex items-start gap-3">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600">
+                <iconify-icon icon="solar:info-circle-linear" width="18" stroke-width="1.5"></iconify-icon>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800">Allocation policy</h3>
+                <p class="mt-1.5 text-xs leading-5 text-slate-500">Students are distributed randomly across selected venues while preserving capacity limits. Re-generating replaces the current allocation.</p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const dropdownButton = document.getElementById('course-dropdown-button');
+    const dropdown = document.getElementById('course-dropdown');
+    const generateButton = document.getElementById('generate-button');
+    const status = document.getElementById('generation-status');
+
+    dropdownButton.addEventListener('click', () => {
+      const isHidden = dropdown.classList.contains('hidden');
+      dropdown.classList.toggle('hidden');
+      dropdownButton.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!dropdown.contains(event.target) && !dropdownButton.contains(event.target)) {
+        dropdown.classList.add('hidden');
+        dropdownButton.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    generateButton.addEventListener('click', () => {
+      const original = generateButton.innerHTML;
+      generateButton.disabled = true;
+      generateButton.classList.add('opacity-80', 'cursor-wait');
+      generateButton.innerHTML = '<iconify-icon icon="solar:refresh-linear" width="18" stroke-width="1.5"></iconify-icon> Generating…';
+      status.textContent = 'Randomizing 842 student records across 10 available venues…';
+
+      setTimeout(() => {
+        generateButton.disabled = false;
+        generateButton.classList.remove('opacity-80', 'cursor-wait');
+        generateButton.innerHTML = original;
+        status.textContent = 'Plan generated just now · Version 02';
+      }, 1200);
+    });
+  </script>
+
+</body></html>
