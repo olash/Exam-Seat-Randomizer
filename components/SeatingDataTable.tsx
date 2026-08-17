@@ -198,7 +198,7 @@ export default function SeatingDataTable({ allocations }: SeatingDataTableProps)
                 const isOverflow = row.isOverflow;
                 return (
                   <tr
-                    key={`${row.matricNo}-${row.courseCode}`}
+                    key={`${row.matricNo}-${row.courseCode}-${i}`}
                     className={`transition ${
                       isOverflow
                         ? "bg-red-50/50 hover:bg-red-50 text-red-700"

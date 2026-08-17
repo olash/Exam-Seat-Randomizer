@@ -206,13 +206,19 @@ export async function parseExcelFiles(files: File[]): Promise<ParsedCourse[]> {
     }
 
     if (allStudents.length > 0 || resolvedCourseCode) {
+      // Deduplicate by matricNo across all sheets to prevent double-parsing summary sheets
+      const uniqueStudents = Array.from(
+        new Map(allStudents.map((s) => [s.matricNo, s])).values()
+      );
+
       results.push({
         courseCode: resolvedCourseCode,
-        students: allStudents,
+        students: uniqueStudents,
         fileName: file.name,
-        rawStudentCount: allStudents.length,
+        rawStudentCount: uniqueStudents.length,
       });
     }
+
   }
 
   return results;
