@@ -26,6 +26,47 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+/**
+ * Class-isolated shuffle.
+ *
+ * Groups students by their class_group (sheet name), applies Fisher-Yates
+ * to each group independently, then flattens back in original group order.
+ *
+ * This guarantees:
+ *  - Students within Class A are randomized only among themselves.
+ *  - Students within Class B are randomized only among themselves.
+ *  - Class A's block always precedes Class B's block in the output queue,
+ *    preserving the sheet order from the workbook.
+ *  - The interleaving algorithm downstream can then safely alternate
+ *    across courses without ever mixing class rosters.
+ */
+function shuffleByClassGroup(
+  students: { name: string; matricNo: string; class_group: string }[]
+): { name: string; matricNo: string; class_group: string }[] {
+  // Preserve the order in which class groups first appear (sheet order)
+  const groupOrder: string[] = [];
+  const groups = new Map<
+    string,
+    { name: string; matricNo: string; class_group: string }[]
+  >();
+
+  for (const s of students) {
+    const g = s.class_group;
+    if (!groups.has(g)) {
+      groupOrder.push(g);
+      groups.set(g, []);
+    }
+    groups.get(g)!.push(s);
+  }
+
+  // Shuffle each class group independently, then flatten
+  const result: { name: string; matricNo: string; class_group: string }[] = [];
+  for (const g of groupOrder) {
+    result.push(...shuffle(groups.get(g)!));
+  }
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Main allocation engine
 // ---------------------------------------------------------------------------
@@ -48,10 +89,11 @@ export function generateSeating(
   venueOverrides: Record<string, string[]> = {}
 ): SeatingAllocation[] {
 
-  // Step 1 — shuffle each course independently
-  const shuffled = new Map<string, { name: string; matricNo: string }[]>();
+  // Step 1 — class-isolated shuffle: each class group (sheet) shuffled independently,
+  // then groups flattened back in original sheet order
+  const shuffled = new Map<string, { name: string; matricNo: string; class_group: string }[]>();
   for (const course of parsedCourses) {
-    shuffled.set(course.courseCode, shuffle(course.students));
+    shuffled.set(course.courseCode, shuffleByClassGroup(course.students));
   }
 
   // Step 2 — distribute students into per-venue course queues

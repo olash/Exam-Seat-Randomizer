@@ -34,6 +34,8 @@ function extractBaseCourseCode(raw: string): string {
 export interface ParsedStudent {
   name: string;
   matricNo: string;
+  /** Sheet name the student came from — used for class-isolated shuffling */
+  class_group: string;
 }
 
 export interface ParsedCourse {
@@ -45,20 +47,21 @@ export interface ParsedCourse {
 
 
 /**
- * Deeply scans the first 15 rows of a sheet to extract the course code,
- * then finds the header row with "Matric No." and "Student Name" to slice records.
+ * Scans one sheet for the course code (first 15 rows) and then extracts
+ * all student rows. Returns the course code found (or null) and the
+ * student records tagged with the sheet name as their class_group.
  */
-function parseSheet(
+function extractStudentsFromSheet(
   sheet: XLSX.WorkSheet,
-  fileName: string
-): ParsedCourse | null {
-  // Convert entire sheet to 2D array for flexible scanning
+  sheetName: string,
+  fileNameFallback: string
+): { courseCode: string | null; students: ParsedStudent[] } {
   const raw: (string | number | null | undefined)[][] =
     XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-  if (raw.length === 0) return null;
+  if (raw.length === 0) return { courseCode: null, students: [] };
 
-  // Step 1: Scan first 15 rows for "Course Code" cell → extract the value
+  // --- Course code extraction (first 15 rows) ---
   let courseCode: string | null = null;
   const scanRows = Math.min(15, raw.length);
 
@@ -67,7 +70,6 @@ function parseSheet(
     for (let c = 0; c < row.length; c++) {
       const cell = String(row[c] ?? "");
       if (/course\s*code/i.test(cell)) {
-        // Value is usually in the next column or the next row
         const nextColVal = row[c + 1];
         const nextRowVal = raw[r + 1]?.[c];
         const candidate = nextColVal ?? nextRowVal;
@@ -80,12 +82,12 @@ function parseSheet(
     if (courseCode) break;
   }
 
+  // Fallback to filename if no code found in this sheet
   if (!courseCode) {
-    // Fallback: derive from filename, stripping extension and suffixes
-    courseCode = extractBaseCourseCode(fileName.replace(/\.xlsx$/i, ""));
+    courseCode = extractBaseCourseCode(fileNameFallback.replace(/\.xlsx$/i, ""));
   }
 
-  // Step 2: Find the data header row with both "Matric No." and "Student Name"
+  // --- Dynamic header boundary detection ---
   let headerRowIndex = -1;
   let nameColIndex = -1;
   let matricColIndex = -1;
@@ -94,13 +96,11 @@ function parseSheet(
     const row = raw[r];
     let foundMatric = -1;
     let foundName = -1;
-
     for (let c = 0; c < row.length; c++) {
       const cell = String(row[c] ?? "").toLowerCase().trim();
       if (/matric\s*(no\.?|number)/i.test(cell)) foundMatric = c;
       if (/student\s*name/i.test(cell) || cell === "name") foundName = c;
     }
-
     if (foundMatric !== -1 && foundName !== -1) {
       headerRowIndex = r;
       matricColIndex = foundMatric;
@@ -109,8 +109,8 @@ function parseSheet(
     }
   }
 
+  // Looser fallback: just find the matric column
   if (headerRowIndex === -1) {
-    // Try looser header detection (just matric no)
     for (let r = 0; r < raw.length; r++) {
       const row = raw[r];
       for (let c = 0; c < row.length; c++) {
@@ -126,7 +126,7 @@ function parseSheet(
     }
   }
 
-  // Extract student rows
+  // --- Student record extraction, tagged with class_group = sheetName ---
   const students: ParsedStudent[] = [];
 
   if (headerRowIndex !== -1) {
@@ -136,28 +136,35 @@ function parseSheet(
 
       const matricRaw = row[matricColIndex];
       const nameRaw = row[nameColIndex];
-
       if (!matricRaw && !nameRaw) continue;
 
       const matricNo = String(matricRaw ?? "").trim();
       const name = String(nameRaw ?? "").trim();
 
       if (matricNo || name) {
-        students.push({ name: name || "Unknown", matricNo: matricNo || "N/A" });
+        students.push({
+          name: name || "Unknown",
+          matricNo: matricNo || "N/A",
+          class_group: sheetName, // <-- sheet-level class identity
+        });
       }
     }
   }
 
-  return {
-    courseCode,
-    students,
-    fileName,
-    rawStudentCount: students.length,
-  };
+  return { courseCode, students };
 }
 
 /**
- * Parse multiple .xlsx File objects. Returns an array of ParsedCourse.
+ * Parse multiple .xlsx File objects.
+ *
+ * For each file, ALL sheets are processed. Students from every sheet are
+ * consolidated into a single ParsedCourse entry for the file, with each
+ * student tagged with class_group = sheetName so the randomization engine
+ * can shuffle class groups independently.
+ *
+ * The course code is taken from the FIRST sheet that yields one; subsequent
+ * sheets in the same file inherit that code (they are different class groups
+ * of the same course).
  */
 export async function parseExcelFiles(files: File[]): Promise<ParsedCourse[]> {
   const results: ParsedCourse[] = [];
@@ -166,14 +173,45 @@ export async function parseExcelFiles(files: File[]): Promise<ParsedCourse[]> {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
 
-    // Process the first sheet of each file
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) continue;
+    if (workbook.SheetNames.length === 0) continue;
 
-    const sheet = workbook.Sheets[firstSheetName];
-    const parsed = parseSheet(sheet, file.name);
-    if (parsed) {
-      results.push(parsed);
+    let resolvedCourseCode: string | null = null;
+    const allStudents: ParsedStudent[] = [];
+
+    // Iterate every sheet — each sheet = one class group
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) continue;
+
+      const { courseCode, students } = extractStudentsFromSheet(
+        sheet,
+        sheetName,
+        file.name
+      );
+
+      // Lock in the course code from the first sheet that provides one
+      if (!resolvedCourseCode && courseCode) {
+        resolvedCourseCode = courseCode;
+      }
+
+      // Tag every student with the resolved code and append
+      allStudents.push(...students);
+    }
+
+    if (!resolvedCourseCode) {
+      // Last resort: derive purely from filename
+      resolvedCourseCode = extractBaseCourseCode(
+        file.name.replace(/\.xlsx$/i, "")
+      );
+    }
+
+    if (allStudents.length > 0 || resolvedCourseCode) {
+      results.push({
+        courseCode: resolvedCourseCode,
+        students: allStudents,
+        fileName: file.name,
+        rawStudentCount: allStudents.length,
+      });
     }
   }
 
